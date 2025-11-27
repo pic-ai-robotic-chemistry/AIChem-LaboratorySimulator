@@ -1,0 +1,97 @@
+from workstation import WorkstationAbility
+from sample import Sample
+import random
+
+# 烘箱
+# （1）把溶剂烘干
+# 限制：
+# 离心管架进样
+# 架子上有50ml离心管
+# 离心管有1-10个
+# 温度低于200度
+# 没装满
+# 没有盖子
+# 离心管中是液体或者固液混合物
+def oven_dry_constraints(sample: Sample):
+    try:
+        if sample.data['container']['container_name'] != "rack":
+            return False
+        if sample.data['container']['subcontainer']['subcontainer_name'] != "50ml_centrifuge_tube":
+            return False
+        if (sample.data['container']['subcontainer']['subcontainer_number'] is None or
+            sample.data['container']['subcontainer']['subcontainer_number'] > 10 or
+            sample.data['container']['subcontainer']['subcontainer_number'] < 1):
+            return False
+        if sample.data['container']['subcontainer']['subcontainer_phase'] not in ['liquid', 'slurry']:
+            return False
+        if sample.data['temperature'] is None or sample.data['temperature'] >= 200:
+            return False
+        if (sample.data['container']['subcontainer']['subcontainer_volume'] is None or
+            sample.data['container']['subcontainer']['subcontainer_volume'] >= 50):
+            return False
+        if sample.data['container']['subcontainer']['covered'] is not False:
+            return False
+    except Exception as e:
+        print(e)
+        return False
+    return True
+
+# 能力：
+# 出来全都是固体
+# 温度达到50～100度
+# 容量减少
+def oven_dry_ability(sample: Sample):
+    sample.data['container']['subcontainer']['subcontainer_phase'] = 'solid'
+    # 体积至少保有固体的体积，假设固体体积为原体积的30%
+    sample.data['container']['subcontainer']['subcontainer_volume'] *= random.uniform(0.3, 0.5) 
+    sample.data['temperature'] = random.randint(50, 100)
+    return sample
+
+# （2）升温反应加热：
+# 离心管架进样
+# 架子上有50ml离心管
+# 离心管有1-10个
+# 温度低于200度
+# 没装满
+# 有盖子
+# 离心管中是液体或者固液混合物
+def oven_heat_constraints(sample: Sample):
+    try:
+        if sample.data['container']['container_name'] != "rack":
+            raise Exception("容器必须是离心管架")
+        if sample.data['container']['subcontainer']['subcontainer_name'] != "50ml_centrifuge_tube":
+            raise Exception("离心管架上的物品必须是50ml离心管")
+        if (sample.data['container']['subcontainer']['subcontainer_number'] is None or
+            sample.data['container']['subcontainer']['subcontainer_number'] > 10 or
+            sample.data['container']['subcontainer']['subcontainer_number'] < 1):
+            raise Exception("总离心管数在1-10之间")
+        if sample.data['container']['subcontainer']['subcontainer_phase'] not in ['liquid', 'slurry']:
+            raise Exception("离心管内里得是液体或固液混合物")
+        if (sample.data['container']['subcontainer']['subcontainer_volume'] is None or
+            sample.data['container']['subcontainer']['subcontainer_volume'] >= 50):
+            raise Exception("离心管内的液体不能超过50ml")
+        if sample.data['temperature'] is None or sample.data['temperature'] >= 200:
+            raise Exception("温度不能超过200度")
+        if sample.data['container']['subcontainer']['covered'] is not True:
+            raise Exception("离心管要有盖子")
+    except Exception as e:
+        print(e)
+        return False
+    return True
+
+# 能力：
+# 把容器加热到100～200度
+def oven_heat_ability(sample: Sample):
+    sample.data['temperature'] = random.randint(100, 200)
+    return sample
+
+oven_dry = WorkstationAbility(
+    name="oven_dry",
+    constraints=oven_dry_constraints,
+    ability=oven_dry_ability
+)
+oven_heat = WorkstationAbility(
+    name="oven_heat",
+    constraints=oven_heat_constraints,
+    ability=oven_heat_ability
+)
